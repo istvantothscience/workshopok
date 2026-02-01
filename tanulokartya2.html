@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pickle Physics Lab - Mechanika & Áramlástan</title>
+    <style>
+        :root {
+            --pickle-dark: #0A251E;
+            --pickle-lime: #D7FF00;
+            --bg-light: #F8F9F8;
+            --card-white: #FFFFFF;
+            --text-main: #0A251E;
+            --text-muted: #5A6B66;
+            --transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+            --radius-lg: 32px;
+            --radius-md: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-main);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Navigáció / Header */
+        nav {
+            background-color: var(--pickle-dark);
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            color: var(--pickle-lime);
+            font-size: 1.8rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+        }
+
+        /* Tartalom tároló */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 1.5rem;
+        }
+
+        .section-header {
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+
+        .section-header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+
+        .section-header h1 span {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* Gombok */
+        .btn {
+            background-color: var(--pickle-lime);
+            color: var(--pickle-dark);
+            border: none;
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-transform: uppercase;
+        }
+
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(215, 255, 0, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: var(--pickle-dark);
+            color: white;
+        }
+
+        /* Tanulókártyák (Flashcards) */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 4rem;
+        }
+
+        .card {
+            height: 240px;
+            perspective: 1000px;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+
+        .card-front {
+            background: var(--card-white);
+            color: var(--pickle-dark);
+            font-weight: 800;
+            font-size: 1.3rem;
+        }
+
+        .card-front::after {
+            content: "KATTINTS A FORDÍTÁSHOZ";
+            position: absolute;
+            bottom: 20px;
+            font-size: 0.7rem;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            opacity: 0.6;
+        }
+
+        .card-back {
+            background: var(--pickle-dark);
+            color: var(--pickle-lime);
+            transform: rotateY(180deg);
+            font-size: 1rem;
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        /* Teszt felület */
+        #quiz-section {
+            display: none;
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 3rem;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.05);
+            animation: slideIn 0.5s ease;
+        }
+
+        .question-block {
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #F1F1F1;
+        }
+
+        .question-title {
+            font-weight: 800;
+            font-size: 1.2rem;
+            margin-bottom: 1.2rem;
+            display: block;
+        }
+
+        .option-label {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 12px 0;
+            padding: 16px 20px;
+            border: 2px solid #F1F1F1;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .option-label:hover {
+            border-color: var(--pickle-dark);
+            background-color: #FAFAFA;
+        }
+
+        /* Kiértékelés színei */
+        .correct { background-color: #E7F6EC !important; border-color: #27AE60 !important; color: #1E4620; }
+        .incorrect { background-color: #FEECEB !important; border-color: #EB5757 !important; color: #4F1916; }
+
+        .score-display {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--pickle-dark);
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .hidden { display: none; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 600px) {
+            .section-header h1 { font-size: 2rem; }
+            #quiz-section { padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="logo">School Lab</div>
+    <div style="color: white; font-weight: 600; font-size: 0.9rem; opacity: 0.7;">9. OSZTÁLY | FIZIKA</div>
+</nav>
+
+<div class="container">
+    
+    <section id="card-section">
+        <div class="section-header">
+            <h1>Mechanika <span>& Áramlástan</span></h1>
+            <p style="color: var(--text-muted);">Kattints a kártyákra a definíciók megjelenítéséhez!</p>
+        </div>
+
+        <div class="grid" id="flashcard-grid">
+            </div>
+
+        <div style="text-align: center;">
+            <button class="btn" onclick="startQuiz()">Teszt indítása</button>
+        </div>
+    </section>
+
+    <section id="quiz-section">
+        <div class="section-header">
+            <h2 style="font-size: 2rem; font-weight: 800;">Tudásellenőrző</h2>
+        </div>
+        
+        <div id="quiz-container"></div>
+        
+        <div id="result-area" class="hidden">
+            <div class="score-display" id="final-score"></div>
+        </div>
+
+        <div style="margin-top: 3rem; display: flex; gap: 15px; justify-content: center;">
+            <button id="submit-btn" class="btn" onclick="evaluateQuiz()">Kiértékelés</button>
+            <button id="reset-btn" class="btn btn-secondary hidden" onclick="location.reload()">Újrakezdés</button>
+        </div>
+    </section>
+
+</div>
+
+<script>
+    // Tartalom a tankönyv alapján 
+    const physicsData = [
+        { term: "Erőhatás", def: "A testek egymásra hatása, amelynek következtében megváltozik a mozgásállapotuk vagy alakjuk." },
+        { term: "Newton I. törvénye", def: "Tehetetlenség törvénye: minden test megőrzi nyugalmi állapotát vagy egyenes vonalú egyenletes mozgását, amíg egy másik test meg nem változtatja azt." },
+        { term: "Inerciarendszer", def: "Olyan vonatkoztatási rendszer, amelyben érvényes a tehetetlenség törvénye." },
+        { term: "Newton II. törvénye", def: "A testre ható erők eredője egyenesen arányos a test gyorsulásával: $F = m \cdot a$." },
+        { term: "Súrlódási erő", def: "Két érintkező felület között fellépő erő, amely a testek egymáshoz képesti mozgását akadályozza." },
+        { term: "Csúszási súrlódás", def: "A mozgó testre ható súrlódási erő, amely függ a felületek minőségétől és az összenyomó erőtől." },
+        { term: "Bernoulli-törvény", def: "Az áramló gázban vagy folyadékban ott kisebb a nyomás, ahol a részecskék sebessége nagyobb." },
+        { term: "Torlónyomás", def: "Az áramlással szembeállított felületen kialakuló többletnyomás, amit sebességmérésre használnak." },
+        { term: "Közegellenállás", def: "Folyadékban vagy gázban mozgó testre ható fékezőerő; függ a sebességtől és a test alakjától." },
+        { term: "Súly", def: "Az az erő, amellyel a test nyomja az alátámasztást vagy húzza a felfüggesztést." }
+    ];
+
+    const quizQuestions = [
+        { 
+            q: "Mi történik a nyomással ott, ahol az áramló levegő sebessége megnő?", 
+            options: ["A nyomás nő", "A nyomás lecsökken", "A nyomás nem változik"], 
+            correct: 1 
+        },
+        { 
+            q: "Melyik mennyiség határozza meg a tehetetlenség mértékét Newton II. törvénye szerint?", 
+            options: ["A sebesség", "A tömeg", "Az erő"], 
+            correct: 1 
+        },
+        { 
+            q: "Milyen rendszerben érvényes Newton I. törvénye?", 
+            options: ["Gyorsuló rendszerben", "Minden rendszerben", "Inerciarendszerben"], 
+            correct: 2 
+        },
+        { 
+            q: "Melyik állítás igaz a tapadási súrlódásra?", 
+            options: ["Mindig kisebb, mint a csúszási", "Maximuma nagyobb, mint a csúszási súrlódás", "Csak mozgó testeknél lép fel"], 
+            correct: 1 
+        },
+        { 
+            q: "Mit mérünk Pitot-Prandtl-csővel?", 
+            options: ["Légnyomást", "Hőmérsékletet", "Áramlási sebességet"], 
+            correct: 2 
+        }
+    ];
+
+    // Kártyák inicializálása
+    function initCards() {
+        const grid = document.getElementById('flashcard-grid');
+        physicsData.forEach(item => {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <div class="card-inner">
+                    <div class="card-front">${item.term}</div>
+                    <div class="card-back">${item.def}</div>
+                </div>
+            `;
+            card.onclick = () => card.classList.toggle('flipped');
+            grid.appendChild(card);
+        });
+    }
+
+    function startQuiz() {
+        document.getElementById('card-section').style.display = 'none';
+        document.getElementById('quiz-section').style.display = 'block';
+        
+        const container = document.getElementById('quiz-container');
+        container.innerHTML = '';
+        
+        quizQuestions.forEach((item, qIdx) => {
+            const div = document.createElement('div');
+            div.className = 'question-block';
+            div.innerHTML = `
+                <span class="question-title">${qIdx + 1}. ${item.q}</span>
+                ${item.options.map((opt, oIdx) => `
+                    <label class="option-label">
+                        <input type="radio" name="q${qIdx}" value="${oIdx}"> ${opt}
+                    </label>
+                `).join('')}
+            `;
+            container.appendChild(div);
+        });
+        window.scrollTo(0,0);
+    }
+
+    function evaluateQuiz() {
+        let score = 0;
+        quizQuestions.forEach((item, qIdx) => {
+            const selected = document.querySelector(`input[name="q${qIdx}"]:checked`);
+            const options = document.querySelectorAll(`input[name="q${qIdx}"]`);
+            
+            options.forEach((opt, oIdx) => {
+                const label = opt.parentElement;
+                if (oIdx === item.correct) label.classList.add('correct');
+                if (selected && parseInt(selected.value) === oIdx && oIdx !== item.correct) {
+                    label.classList.add('incorrect');
+                }
+            });
+
+            if (selected && parseInt(selected.value) === item.correct) score++;
+        });
+
+        const scoreDiv = document.getElementById('final-score');
+        scoreDiv.innerText = `EREDMÉNY: ${score} / ${quizQuestions.length}`;
+        document.getElementById('result-area').classList.remove('hidden');
+        document.getElementById('submit-btn').classList.add('hidden');
+        document.getElementById('reset-btn').classList.remove('hidden');
+    }
+
+    initCards();
+</script>
+
+</body>
+</html>
