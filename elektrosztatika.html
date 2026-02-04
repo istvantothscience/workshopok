@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Szikrázó Elme - Elektrosztatika Labor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #05050a;
+            --glass: rgba(255, 255, 255, 0.05);
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff00ff;
+            --neon-yellow: #fde047;
+            --neon-red: #ff3333;
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: var(--bg-dark);
+            color: #fff;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            touch-action: none;
+        }
+
+        .container { width: 95%; max-width: 1100px; margin: 20px auto; }
+
+        h1 { text-align: center; text-shadow: 0 0 20px var(--neon-blue); letter-spacing: 2px; }
+
+        .app-box {
+            background: var(--glass);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+        }
+
+        canvas {
+            width: 100%; height: 450px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 16px;
+            border: 1px solid var(--neon-blue);
+            cursor: grab;
+        }
+
+        .ui-panel {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px; margin-top: 20px;
+        }
+
+        .control-box {
+            background: rgba(255,255,255,0.03);
+            padding: 15px; border-radius: 12px; border-left: 4px solid var(--neon-blue);
+        }
+
+        select, button {
+            width: 100%; padding: 12px; margin-top: 10px;
+            background: #000; border: 1px solid var(--neon-blue);
+            color: var(--neon-blue); border-radius: 8px; font-weight: bold;
+            cursor: pointer; transition: 0.3s;
+        }
+        button:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 15px var(--neon-blue); }
+
+        /* Quiz UI */
+        .quiz-section { display: none; margin-top: 30px; padding-bottom: 50px; }
+        .q-card { background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; margin-bottom: 15px; }
+        .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .opt-btn { background: rgba(0,0,0,0.3); border: 1px solid #444; color: #ccc; }
+        .correct { background: #22c55e !important; color: #fff !important; border-color: #22c55e !important; }
+        .wrong { background: #ef4444 !important; color: #fff !important; border-color: #ef4444 !important; }
+
+        /* Modal / Pop-up Window */
+        #celebration-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 1000;
+            justify-content: center; align-items: center; text-align: center;
+        }
+        .modal-content {
+            padding: 40px; border: 4px solid var(--neon-yellow); border-radius: 30px;
+            box-shadow: 0 0 50px var(--neon-yellow); background: #000;
+            animation: lightning-border 0.5s infinite;
+        }
+        .modal-content h2 { font-size: 2.5rem; color: var(--neon-yellow); margin: 0; }
+        
+        @keyframes lightning-border {
+            0% { border-color: var(--neon-yellow); box-shadow: 0 0 20px var(--neon-yellow); }
+            50% { border-color: #fff; box-shadow: 0 0 60px var(--neon-blue); }
+            100% { border-color: var(--neon-yellow); box-shadow: 0 0 20px var(--neon-yellow); }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>SZIKRÁZÓ ELME LABOR</h1>
+    
+    <div class="app-box">
+        <canvas id="mainCanvas"></canvas>
+        <div class="ui-panel">
+            <div class="control-box">
+                <label>BAL RÚD:</label>
+                <select onchange="changeType(0, this.value)">
+                    <option value="plastic">MŰANYAG (-)</option>
+                    <option value="glass">ÜVEG (+)</option>
+                </select>
+            </div>
+            <div class="control-box" style="border-color: var(--neon-pink);">
+                <label>JOBB RÚD:</label>
+                <select onchange="changeType(1, this.value)">
+                    <option value="plastic">MŰANYAG (-)</option>
+                    <option value="glass" selected>ÜVEG (+)</option>
+                </select>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <button onclick="resetApp()">ALAPHELYZET</button>
+                <button onclick="startQuiz()">KVÍZ INDÍTÁSA</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="quiz-area" class="quiz-section">
+        <h2 style="text-align: center; color: var(--neon-yellow);">ÉRTÉKELŐ TESZT (10 KÉRDÉS)</h2>
+        <div id="quiz-container"></div>
+        <button id="eval-btn" style="margin-top: 20px; font-size: 1.2rem; display: none;" onclick="evaluateQuiz()">KIÉRTÉKELÉS ÉS PONTSZÁMÍTÁS</button>
+        <div id="final-score" style="text-align: center; font-size: 2rem; margin-top: 20px;"></div>
+    </div>
+</div>
+
+<div id="celebration-modal" onclick="this.style.display='none'">
+    <div class="modal-content">
+        <h2>⚡ GRATULÁLOK! ⚡</h2>
+        <p style="font-size: 1.5rem; margin: 20px 0;">Egy igazi szikrázó elmével van dolgom!</p>
+        <button onclick="location.reload()">Újra</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('mainCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height, rods = [], sparks = [];
+    const ragH = 70; 
+
+    function resetApp() {
+        width = canvas.width = canvas.offsetWidth;
+        height = canvas.height = canvas.offsetHeight;
+        rods = [
+            { id: 0, x: width*0.25, y: 150, w: 35, h: 200, charge: 0, type: 'plastic', dragging: false, velX: 0 },
+            { id: 1, x: width*0.65, y: 150, w: 35, h: 200, charge: 0, type: 'glass', dragging: false, velX: 0 }
+        ];
+        requestAnimationFrame(loop);
+    }
+
+    function changeType(id, type) { rods[id].type = type; rods[id].charge = 0; }
+
+    function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+        const p = getMousePos(e);
+        rods.forEach(r => { if(p.x > r.x && p.x < r.x+r.w && p.y > r.y && p.y < r.y+r.h) r.dragging = true; });
+    });
+    window.addEventListener('mousemove', (e) => {
+        const p = getMousePos(e);
+        rods.forEach(r => {
+            if(r.dragging) {
+                r.x = p.x - r.w/2; r.y = p.y - r.h/2;
+                if(r.y < 0) r.y = 0;
+                if(r.y < ragH) { // Dörzsölés a rongynál
+                    r.charge += (r.type === 'plastic' ? -0.2 : 0.2);
+                    r.charge = Math.max(-20, Math.min(20, r.charge));
+                }
+            }
+        });
+    });
+    window.addEventListener('mouseup', () => rods.forEach(r => r.dragging = false));
+    canvas.addEventListener('touchstart', (e) => { e.preventDefault(); /* ... hasonló mousedownhoz */ }, {passive: false});
+
+    function loop() {
+        ctx.clearRect(0, 0, width, height);
+        
+        // 1. Rongy felül
+        ctx.fillStyle = '#4b3621'; ctx.fillRect(0,0,width, ragH);
+        ctx.fillStyle = '#fff'; ctx.font = '14px Montserrat'; ctx.textAlign = 'center';
+        ctx.fillText("DÖRZSÖLŐ RONGY - Húzd ide a rudakat!", width/2, ragH/2 + 5);
+
+        // 2. Földelő (jobb szél)
+        ctx.fillStyle = '#333'; ctx.fillRect(width-40, 100, 40, height-100);
+        ctx.fillStyle = varCSS('--neon-blue'); ctx.fillText("FÖLD", width-20, 90);
+
+        // 3. Fizika
+        let r1 = rods[0], r2 = rods[1];
+        let d = r2.x - (r1.x + r1.w);
+        if(!r1.dragging && !r2.dragging) {
+            let force = 4000 * (r1.charge * r2.charge) / Math.pow(Math.max(Math.abs(d), 40), 2);
+            r1.velX -= force; r2.velX += force;
+            r1.x += r1.velX; r2.x += r2.velX;
+            r1.velX *= 0.9; r2.velX *= 0.9;
+        }
+
+        // Ütközés és Szikra
+        if(d < 0) {
+            r1.x += d/2; r2.x -= d/2;
+            if(Math.abs(r1.charge - r2.charge) > 5) {
+                sparks.push({x1: r1.x+r1.w, x2: r2.x, y: r1.y+100, life: 10});
+                let avg = (r1.charge + r2.charge)/2; r1.charge = avg; r2.charge = avg;
+            }
+        }
+        // Földelés
+        rods.forEach(r => {
+            if(r.x + r.w > width-40 && Math.abs(r.charge) > 2) {
+                sparks.push({x1: r.x+r.w, x2: width, y: r.y+100, life: 15, massive: true});
+                r.charge = 0;
+            }
+        });
+
+        // 4. Rajzolás
+        rods.forEach(r => {
+            ctx.fillStyle = r.type === 'plastic' ? '#8b4513' : '#a8d0e6';
+            ctx.shadowBlur = Math.abs(r.charge) * 2;
+            ctx.shadowColor = r.charge > 0 ? 'red' : 'blue';
+            ctx.beginPath(); ctx.roundRect(r.x, r.y, r.w, r.h, 10); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#fff';
+            let c = Math.floor(Math.abs(r.charge));
+            for(let i=0; i<c; i++) ctx.fillText(r.charge > 0 ? '+' : '-', r.x+r.w/2, r.y+20+(i*15)%(r.h-20));
+        });
+
+        sparks.forEach((s, i) => {
+            ctx.strokeStyle = s.massive ? '#00f3ff' : '#ffff00';
+            ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(s.x1, s.y);
+            ctx.lineTo((s.x1+s.x2)/2 + Math.random()*20-10, s.y + Math.random()*20-10);
+            ctx.lineTo(s.x2, s.y); ctx.stroke();
+            s.life--; if(s.life <= 0) sparks.splice(i, 1);
+        });
+
+        requestAnimationFrame(loop);
+    }
+
+    // --- KVÍZ LOGIKA ---
+    const questions = [
+        { q: "Melyik részecske mozdul el a dörzsölés során?", a: ["Proton", "Elektron", "Neutron", "Atommag"], c: 1 },
+        { q: "Mi történik két negatív töltésű rúd között?", a: ["Vonzás", "Taszítás", "Semmi", "Szikrázás"], c: 1 },
+        { q: "Mi a töltés jele és mértékegysége?", a: ["U, Volt", "I, Amper", "Q, Coulomb", "R, Ohm"], c: 2 },
+        { q: "Milyen töltésű lesz a műanyag rúd a ronggyal való dörzsölés után?", a: ["Pozitív", "Negatív", "Semleges", "Változó"], c: 1 },
+        { q: "Hogy hívják azt az anyagot, amiben a töltések nem tudnak elmozdulni?", a: ["Vezető", "Szigetelő", "Fém", "Elektrolit"], c: 1 },
+        { q: "Mi az elektroszkóp feladata?", a: ["Töltés mérése", "Töltés jelenlétének kimutatása", "Áramtermelés", "Világítás"], c: 1 },
+        { q: "Hogyan változik a Coulomb-erő, ha a távolságot duplájára (2x) növeljük?", a: ["Kétszeres lesz", "Fele lesz", "Négyszeres lesz", "Negyedére csökken"], c: 3 },
+        { q: "Melyik folyamat során választhatunk szét töltéseket?", a: ["Melegítés", "Dörzsölés", "Hűtés", "Szárítás"], c: 1 },
+        { q: "Mit jelent a földelés?", a: ["A töltések elvezetése a földbe", "A test beásása a földbe", "Elemek összekötése", "Szigetelés"], c: 0 },
+        { q: "Melyik természeti jelenség alapul elektrosztatikus kisülésen?", a: ["Szivárvány", "Eső", "Villámlás", "Szél"], c: 2 }
+    ];
+
+    function startQuiz() {
+        document.getElementById('quiz-area').style.display = 'block';
+        const container = document.getElementById('quiz-container');
+        container.innerHTML = "";
+        questions.forEach((item, idx) => {
+            const div = document.createElement('div'); div.className = 'q-card';
+            div.innerHTML = `<p><strong>${idx+1}. ${item.q}</strong></p><div class="options"></div>`;
+            const optDiv = div.querySelector('.options');
+            item.a.forEach((ans, aIdx) => {
+                const btn = document.createElement('button'); btn.className = 'opt-btn'; btn.innerText = ans;
+                btn.onclick = () => {
+                    if(optDiv.dataset.answered) return;
+                    optDiv.dataset.answered = "true";
+                    optDiv.dataset.correct = (aIdx === item.c);
+                    if(aIdx === item.c) btn.classList.add('correct');
+                    else { btn.classList.add('wrong'); optDiv.children[item.c].classList.add('correct'); }
+                    checkAllAnswered();
+                };
+                optDiv.appendChild(btn);
+            });
+            container.appendChild(div);
+        });
+        window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    function checkAllAnswered() {
+        const answered = document.querySelectorAll('.options[data-answered="true"]').length;
+        if(answered === questions.length) document.getElementById('eval-btn').style.display = 'block';
+    }
+
+    function evaluateQuiz() {
+        let score = document.querySelectorAll('.options[data-correct="true"]').length;
+        document.getElementById('final-score').innerText = `PONTSZÁM: ${score} / 10`;
+        if(score > 8) {
+            setTimeout(() => {
+                document.getElementById('celebration-modal').style.display = 'flex';
+            }, 500);
+        }
+    }
+
+    function varCSS(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+    window.onload = resetApp;
+</script>
+</body>
+</html>
