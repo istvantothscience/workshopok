@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cambridge Science - Ultimate H2O Lab</title>
+    <style>
+        :root {
+            --primary-green: #E8F5E9;
+            --dark-green: #2E7D32;
+            --accent-green: #81C784;
+            --ice-blue: #2196F3;
+            --fire-red: #F44336;
+            --white: #ffffff;
+            --bg-gray: #f4f7f4;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            margin: 0;
+            background-color: var(--bg-gray);
+            color: #333;
+            text-align: center;
+        }
+
+        header {
+            background-color: var(--primary-green);
+            padding: 20px;
+            border-bottom: 5px solid var(--accent-green);
+        }
+
+        header h1 { margin: 0; color: var(--dark-green); font-size: 2rem; text-transform: uppercase;}
+
+        .container { max-width: 1000px; margin: 20px auto; padding: 20px; }
+
+        .sim-box {
+            background: white;
+            border-radius: 30px;
+            padding: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        canvas {
+            background: #ffffff;
+            border: 4px solid var(--dark-green);
+            border-radius: 15px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .controls {
+            margin-top: 20px;
+            padding: 25px;
+            background: #f1f8e9;
+            border-radius: 25px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 15px;
+            border: 2px solid var(--primary-green);
+        }
+
+        .temp-display { font-size: 2.2rem; font-weight: 900; color: var(--dark-green); }
+
+        /* Modern Slider with Center Mark */
+        .slider-wrapper {
+            position: relative;
+            padding: 20px 0;
+        }
+
+        input[type=range] {
+            width: 90%;
+            cursor: pointer;
+            height: 12px;
+            border-radius: 10px;
+            appearance: none;
+            background: linear-gradient(to right, var(--ice-blue) 0%, #ddd 50%, var(--fire-red) 100%);
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            appearance: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--dark-green);
+            border: 3px solid white;
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            width: 90%;
+            margin: 10px auto;
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+
+        .center-mark {
+            position: absolute;
+            left: 50%;
+            top: 10px;
+            transform: translateX(-50%);
+            font-size: 0.8rem;
+            color: var(--dark-green);
+            font-weight: 900;
+        }
+
+        .quiz-box {
+            background: white;
+            border-radius: 30px;
+            padding: 30px;
+            text-align: left;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        .question { margin-bottom: 20px; padding: 15px; border-left: 6px solid var(--dark-green); background: #f9f9f9; border-radius: 10px; }
+        label { display: block; margin: 8px 0; cursor: pointer; padding: 5px; border-radius: 5px; }
+        label:hover { background: #e8f5e9; }
+        .btn { background: var(--dark-green); color: white; border: none; padding: 15px 30px; border-radius: 30px; font-weight: 800; cursor: pointer; display: block; margin: 20px auto; }
+        .correct { background: #e8f5e9; border: 1px solid #2e7d32; font-weight: bold; }
+        .incorrect { background: #ffebee; border: 1px solid #c62828; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>H2O Energy & Interaction Lab</h1>
+    <p>Cambridge Science Grade 5 - Phase Change Master</p>
+</header>
+
+<div class="container">
+    <div class="sim-box">
+        <canvas id="simCanvas" width="800" height="450"></canvas>
+        <div class="controls">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="temp-display"><span id="tempVal"> -10</span>°C</div>
+                    <div style="font-size: 0.8rem; font-weight: 700; color: #666;">TEMPERATURE</div>
+                </div>
+                <div class="stat-card">
+                    <div id="stateLabel" style="font-size: 1.2rem; font-weight: 800; color: var(--ice-blue); margin-top: 5px;">SOLID (ICE)</div>
+                    <div style="font-size: 0.8rem; font-weight: 700; color: #666;">PHASE STATE</div>
+                </div>
+            </div>
+            
+            <div class="slider-wrapper">
+                <div class="center-mark">OFF (0)</div>
+                <input type="range" id="heatPower" min="-5" max="5" value="0" step="1">
+                <div class="slider-labels">
+                    <span style="color: var(--ice-blue);">❄️ COOLING</span>
+                    <span style="color: var(--fire-red);">🔥 HEATING</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="quiz-box">
+        <h2 style="text-align: center; color: var(--dark-green);">Laboratory Report Quiz</h2>
+        <div id="quiz-container"></div>
+        <div id="final-score" style="text-align: center; margin-top: 20px; font-weight: 900; font-size: 1.5rem;"></div>
+        <button class="btn" onclick="checkAnswers()">Evaluate Laboratory Work</button>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    const heatSlider = document.getElementById('heatPower');
+    const tempText = document.getElementById('tempVal');
+    const stateLabel = document.getElementById('stateLabel');
+
+    let energy = 0;
+    let temperature = -10;
+    const MOL_COUNT = 120; 
+    const radius = 10; 
+    let molecules = [];
+
+    class Molecule {
+        constructor(id) {
+            this.id = id;
+            this.resetPos();
+            this.vx = (Math.random() - 0.5) * 2;
+            this.vy = (Math.random() - 0.5) * 2;
+            this.angle = Math.random() * Math.PI * 2;
+        }
+
+        resetPos() {
+            const col = this.id % 12;
+            const row = Math.floor(this.id / 12);
+            this.homeX = 260 + col * 26;
+            this.homeY = 280 + row * 22;
+            this.x = this.homeX;
+            this.y = this.homeY;
+        }
+
+        draw(t, state) {
+            let color = "rgb(179, 229, 252)"; // Ice
+            if (state === "liquid" || state === "melting") color = "rgb(3, 169, 244)"; // Water
+            if (state === "gas" || state === "boiling") color = `rgb(255, ${Math.max(0, 200 - t)}, ${Math.max(0, 200 - t)})`; // Steam
+
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.angle);
+
+            // Hydrogen atoms
+            ctx.fillStyle = "#fff";
+            ctx.beginPath(); ctx.arc(-7, 6, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(7, 6, 4, 0, Math.PI * 2); ctx.fill();
+
+            // Oxygen atom
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "rgba(0,0,0,0.2)"; ctx.stroke();
+
+            // Face based on state
+            ctx.fillStyle = "#000";
+            ctx.beginPath(); ctx.arc(-3, -2, 1.2, 0, Math.PI * 2); ctx.arc(3, -2, 1.2, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath();
+            if (t < 0) ctx.moveTo(-3, 4), ctx.lineTo(3, 4); // Cold face
+            else if (t < 100) ctx.arc(0, 1, 4, 0, Math.PI); // Happy face
+            else ctx.arc(0, 4, 2.5, 0, Math.PI * 2); // Surprised face
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        update(t, state, mP, bP) {
+            if (state === "solid") {
+                let jitter = (t + 25) * 0.05; // Vibrate
+                this.x = this.homeX + (Math.random() - 0.5) * jitter;
+                this.y = this.homeY + (Math.random() - 0.5) * jitter;
+                this.angle = 0;
+            } else {
+                const threshold = (this.id / MOL_COUNT) * 100;
+                let activeState = state;
+                if (state === "melting") activeState = (mP > threshold) ? "liquid" : "solid";
+                if (state === "boiling") activeState = (bP > threshold) ? "gas" : "liquid";
+
+                if (activeState === "liquid") { // Flow
+                    this.vx += (Math.random() - 0.5) * 0.4;
+                    this.vy += (Math.random() - 0.5) * 0.4 + 0.18; // Gravity
+                    this.x += this.vx * (1 + t/150);
+                    this.y += this.vy * (1 + t/150);
+                    this.angle += this.vx * 0.08;
+                    this.handleWalls(0.5, 250);
+                } else if (activeState === "gas") { // Zoom
+                    this.x += this.vx * (t/30);
+                    this.y += this.vy * (t/30);
+                    this.angle += 0.15;
+                    this.handleWalls(1.0, 0);
+                } else if (activeState === "solid") {
+                    this.x = this.homeX + (Math.random() - 0.5) * 1;
+                    this.y = this.homeY + (Math.random() - 0.5) * 1;
+                }
+            }
+        }
+
+        handleWalls(bounce, floorLimit) {
+            if (this.x < radius || this.x > canvas.width - radius) { this.vx *= -bounce; this.x = (this.x < radius) ? radius : canvas.width - radius; }
+            if (this.y > canvas.height - radius) { this.y = canvas.height - radius; this.vy *= -bounce * 0.6; }
+            if (floorLimit > 0 && this.y < floorLimit) { this.vy += 0.6; }
+            if (floorLimit === 0 && this.y < radius) { this.vy *= -bounce; this.y = radius; }
+        }
+    }
+
+    function handleCollisions() {
+        for (let i = 0; i < molecules.length; i++) {
+            for (let j = i + 1; j < molecules.length; j++) {
+                let m1 = molecules[i];
+                let m2 = molecules[j];
+                let dx = m2.x - m1.x;
+                let dy = m2.y - m1.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                let minDist = radius * 2;
+
+                if (dist < minDist) {
+                    let angle = Math.atan2(dy, dx);
+                    let targetX = m1.x + Math.cos(angle) * minDist;
+                    let targetY = m1.y + Math.sin(angle) * minDist;
+                    let ax = (targetX - m2.x) * 0.1;
+                    let ay = (targetY - m2.y) * 0.1;
+                    m1.vx -= ax; m1.vy -= ay;
+                    m2.vx += ax; m2.vy += ay;
+                }
+            }
+        }
+    }
+
+    for(let i=0; i<MOL_COUNT; i++) molecules.push(new Molecule(i));
+
+    function loop() {
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+        
+        // Heating or cooling based on slider
+        const power = parseInt(heatSlider.value);
+        energy += power * 0.5;
+
+        let state = "solid";
+        let mP = 0, bP = 0;
+
+        // Latent Heat Logic
+        if (energy < 100) { temperature = -20 + (energy / 100) * 20; state = "solid"; }
+        else if (energy < 350) { temperature = 0; mP = ((energy - 100) / 250) * 100; state = "melting"; }
+        else if (energy < 900) { temperature = ((energy - 350) / 550) * 100; state = "liquid"; }
+        else if (energy < 1350) { temperature = 100; bP = ((energy - 900) / 450) * 100; state = "boiling"; }
+        else { temperature = 100 + (energy - 1350) / 10; state = "gas"; }
+
+        tempText.innerText = Math.floor(temperature);
+        stateLabel.innerText = state.toUpperCase().replace("ING", "ING...");
+        stateLabel.style.color = (temperature < 0) ? "#2196F3" : (temperature < 100) ? "#0288D1" : "#D32F2F";
+
+        handleCollisions();
+        molecules.forEach(m => {
+            m.update(temperature, state, mP, bP);
+            m.draw(temperature, state);
+        });
+        requestAnimationFrame(loop);
+    }
+
+    const quizData = [
+        { q: "What happens to the molecules' energy when you increase heat?", a: ["They lose energy", "They get more energy and move faster", "Energy stays the same"], c: 1 },
+        { q: "At what temperature did the temperature 'stop' rising while melting?", a: ["-20°C", "100°C", "0°C"], c: 2 },
+        { q: "In the GAS state, how do particles move?", a: ["In a fixed grid", "Fast and random in all directions", "Sliding slowly at the bottom"], c: 1 },
+        { q: "What is the fixed pattern in the SOLID state called?", a: ["A flow", "A random zoom", "A regular pattern (grid)"], c: 2 },
+        { q: "What do molecules do when they collide with each other?", a: ["They pass through each other", "They bounce off each other", "They stick together forever"], c: 1 },
+        { q: "How many atoms make up one water molecule in this lab?", a: ["1 Oxygen + 2 Hydrogen", "2 Oxygen + 1 Hydrogen", "3 Hydrogen"], c: 0 },
+        { q: "Which state of matter can 'flow' and take the shape of a container?", a: ["Solid", "Liquid", "Gas"], c: 1 },
+        { q: "What is 'latent heat' based on your observations?", a: ["A very hot burner", "Energy used for state change instead of raising temperature", "Frozen molecules"], c: 1 },
+        { q: "What happens to the distance between particles in the GAS state?", a: ["They get closer", "They stay the same", "They get much farther apart"], c: 2 },
+        { q: "Can you see these tiny particles with your naked eyes in real life?", a: ["Yes, they are like sand", "No, they are far too small to see", "Only if they are red"], c: 1 }
+    ];
+
+    function loadQuiz() {
+        const container = document.getElementById('quiz-container');
+        quizData.forEach((item, i) => {
+            container.innerHTML += `<div class="question" id="q${i}"><p><strong>Q${i+1}: ${item.q}</strong></p>
+            ${item.a.map((opt, oi) => `<label><input type="radio" name="ans${i}" value="${oi}"> ${opt}</label>`).join('')}</div>`;
+        });
+    }
+
+    function checkAnswers() {
+        let score = 0;
+        quizData.forEach((item, i) => {
+            const sel = document.querySelector(`input[name="ans${i}"]:checked`);
+            const div = document.getElementById(`q${i}`);
+            if (sel && parseInt(sel.value) === item.c) { score++; div.className = "question correct"; }
+            else div.className = "question incorrect";
+        });
+        document.getElementById('final-score').innerText = `LAB SCORE: ${score} / 10`;
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+
+    loop(); loadQuiz();
+</script>
+</body>
+</html>
